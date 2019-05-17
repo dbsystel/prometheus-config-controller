@@ -1,0 +1,115 @@
+apiVersion: apps/v1beta2
+kind: StatefulSet
+metadata:
+  name: {{ template "prometheus.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "prometheus.name" . }}
+  serviceName: {{ template "prometheus.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "prometheus.name" . }}
+    spec:
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      serviceAccountName: {{ template "prometheus.name" . }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key:      app
+                    operator: In
+                    values:
+                      -  prometheus
+              topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: init-copy-configmap-to-emptydir
+          image: {{ include "init.image" . | quote }}
+          args:
+            - sh
+            - -c
+            - |
+              touch /start/prometheus.yml ;chmod 666 /start/prometheus.yml; cp /source/prometheus.tmpl /config ;chmod 666 /config/prometheus.tmpl
+          volumeMounts:
+            - name: prometheus-config-template
+              mountPath: "/config"
+            - name: prometheus-config-emptydir
+              mountPath: "/start"
+            - name: prometheus-empty-config
+              mountPath: "/source"
+          resources:
+            limits:
+              cpu: {{ .Values.init.resources.limits.cpu }}
+              memory: {{ .Values.init.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.init.resources.requests.cpu }}
+              memory: {{ .Values.init.resources.requests.memory }}
+
+      containers:
+        - name: {{ template "prometheus.name" . }}
+          image: "{{ .Values.prometheus.image.repository }}:{{ .Values.prometheus.image.tag }}"
+          args:
+            - --config.file={{ .Values.prometheus.configFile }}
+            - --storage.tsdb.path={{ .Values.prometheus.storageTsdbPath }}
+            - --storage.tsdb.retention={{ .Values.prometheus.retention }}
+            - --web.enable-lifecycle
+            - --web.external-url={{ .Values.ingress.host }}
+            - --log.format={{ .Values.prometheus.logFormat }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: "/prometheus"
+            - mountPath: "/etc/prometheus"
+              name:      prometheus-config-emptydir
+              readOnly:  true
+            - mountPath: "/etc/prometheus/rules"
+              name:      prometheus-rules-emptydir
+          resources:
+            limits:
+              cpu: {{ .Values.prometheus.resources.limits.cpu }}
+              memory: {{ .Values.prometheus.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.prometheus.resources.requests.cpu }}
+              memory: {{ .Values.prometheus.resources.requests.memory }}
+        - name: prometheus-controller
+          image: "{{ .Values.prometheusController.image.repository }}:{{ .Values.prometheusController.image.tag }}"
+          args:
+            - "--config-path={{ .Values.prometheusController.path }}"
+            - "--config-template={{ .Values.prometheusController.template }}"
+            - "--reload-url={{ .Values.prometheusController.url }}"
+            - "--id={{ .Values.prometheusController.id }}"
+            - "--key={{ .Values.prometheusController.key }}"
+            - "--log-level={{ .Values.prometheusController.logLevel }}"
+          volumeMounts:
+            - mountPath: "/etc/config"
+              name:      prometheus-config-emptydir
+            - mountPath: "/etc/prometheus"
+              name:      prometheus-config-template
+            - mountPath: "/etc/config/rules"
+              name:      prometheus-rules-emptydir
+      volumes:
+        - name: prometheus-config-emptydir
+          emptyDir: {}
+        - name: prometheus-config-template
+          emptyDir: {}
+        - name: prometheus-empty-config
+          configMap:
+            name: prometheus-empty-config
+        - name: prometheus-rules-emptydir
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ .Values.volumeClaimTemplates.name }}
+      spec:
+        accessModes: 
+{{ toYaml .Values.volumeClaimTemplates.accessModes | indent 10 }}
+        resources:
+          requests: 
+            storage: {{ .Values.volumeClaimTemplates.requests.storage }}

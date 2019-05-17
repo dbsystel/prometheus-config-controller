@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-empty-config
+data:
+  prometheus.tmpl: |-
+    scrape_configs:
+    {{`{{`}} .Jobs {{`}}`}}
