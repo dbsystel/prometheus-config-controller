@@ -1,0 +1,19 @@
+---                                                  
+apiVersion: v1                                       
+kind: ConfigMap                                      
+metadata:                                            
+  name: rule-example 
+  namespace: monitoring                              
+  annotations:                                       
+    prometheus.net/rule: "true"                      
+    prometheus.net/id: "0"                           
+data:                                                
+  example_rules_alerts.yaml: |-                         
+    groups:
+    - name: prometheus.controller
+      rules:
+      - alert: prometheus-contorller-test-lambda1
+        expr: vector(0)
+        labels:
+          cid: OPS
+          receiver: sns-forwarder

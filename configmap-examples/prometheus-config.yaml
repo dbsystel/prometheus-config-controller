@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  annotations:
+    prometheus.net/config: "true"
+    prometheus.net/id: "0"
+    prometheus.net/key: ""
+data:
+  prometheus.tmpl: |-
+    global:
+      scrape_interval: 15s
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - alertmanager-0.alertmanager-ha:9093
+          - alertmanager-1.alertmanager-ha:9093
+          - alertmanager-2.alertmanager-ha:9093
+
+        scheme: http
+        timeout: 10s
+    rule_files:
+    - "/etc/prometheus/rules/*"
+    scrape_configs:
+    {{ .Jobs }}

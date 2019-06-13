@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: job-example
+  namespace: monitoring
+  annotations:
+    prometheus.net/job: "true"
+    prometheus.net/id: "0"
+data:
+  example_job.yaml: |-
+    - job_name: kubernetes-services
+      scrape_interval: 5s
+      scrape_timeout: 5s
+      metrics_path: /metrics
+      scheme: http
+      static_configs:
+      - targets:
+        - prometheus.monitoring.svc:9090
