@@ -52,5 +52,4 @@ dockers:
   - image_templates:
       - "dbsystel/prometheus-config-controller:latest"
       - "dbsystel/prometheus-config-controller:{{ .Tag }}"
-      - "dbsystel/prometheus-config-controller:{{ .Major }}.{{ .Minor }}"
 
