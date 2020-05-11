@@ -39,7 +39,7 @@ var (
 var (
 	configErrors = pclient.NewCounter(
 		pclient.CounterOpts{
-			Name: "prometheus_controller_config_error_total",
+			Name: "prometheus_controller_config_errors_total",
 			Help: "Prometheus Controller Error Config Total",
 		},
 	)

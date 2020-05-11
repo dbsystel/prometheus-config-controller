@@ -57,9 +57,9 @@ Mentioned `"false"` values can be also specified with: `"0", "f", "F", "false", 
 ```
 
 ## Metrics
-This Controller ignores all configs with syntax error. There is a metric to monitor the count of wrong configs:
+This Controller ignores all configs with syntax errors. There is a metric to monitor the count of wrong configs:
 ```
-prometheus_controller_config_error_total
+prometheus_controller_config_errors_total
 ```
 
 ## Development
