@@ -298,6 +298,7 @@ func (c *Controller) validateRules(configmapObj *v1.ConfigMap) bool {
 		}
 		_, fmtErr := rulefmt.Parse([]byte(v))
 		if fmtErr != nil {
+			c.p.ErrorCount.Inc()
 			for _, err := range fmtErr {
 				//nolint:errcheck
 				level.Error(c.logger).Log(
@@ -334,6 +335,7 @@ func (c *Controller) validateJobs(configmapObj *v1.ConfigMap) bool {
 		}
 		_, configErr := config.Load(tpl.String())
 		if configErr != nil {
+			c.p.ErrorCount.Inc()
 			//nolint:errcheck
 			level.Error(c.logger).Log(
 				"msg", "Invalid job: "+k,

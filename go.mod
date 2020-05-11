@@ -9,6 +9,7 @@ require (
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
 	github.com/prometheus/prometheus v0.0.0-20190424153033-d3245f150225
 	golang.org/x/arch v0.0.0-20190815191158-8a70ba74b3a1 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6

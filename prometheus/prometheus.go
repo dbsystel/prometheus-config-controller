@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	pclient "github.com/prometheus/client_golang/prometheus"
 )
 
 // APIClient to reload Prometheus
@@ -21,6 +22,7 @@ type APIClient struct {
 	ID             string
 	Key            string
 	logger         log.Logger
+	ErrorCount     pclient.Counter
 }
 
 // Config for Prometheus
@@ -68,7 +70,7 @@ func (c *APIClient) doPost(url string) (int, error) {
 }
 
 // New creates a new APIClient
-func New(baseURL *url.URL, configPath string, configTemplate string, id string, key string, logger log.Logger) *APIClient {
+func New(baseURL *url.URL, configPath string, configTemplate string, id string, key string, errorCount pclient.Counter, logger log.Logger) *APIClient {
 	return &APIClient{
 		URL:            baseURL,
 		ConfigPath:     configPath,
@@ -76,6 +78,7 @@ func New(baseURL *url.URL, configPath string, configTemplate string, id string, 
 		HTTPClient:     http.DefaultClient,
 		ID:             id,
 		Key:            key,
+		ErrorCount:     errorCount,
 		logger:         logger,
 	}
 }
