@@ -26,9 +26,9 @@ var (
 	//Here you can define more flags for your application
 	configPath     = app.Flag("config-path", "The location to save rule and config files to").Required().String()
 	configTemplate = app.Flag("config-template", "The template of prometheus.yml").Required().String()
-	id             = app.Flag("id", "The id of Prometheus").Default("0").Int()
+	id             = app.Flag("id", "The id of Prometheus").Default("0").String()
 	key            = app.Flag("key", "The unique key for prometheus config").String()
-	reloadUrl      = app.Flag("reload-url", "The url to issue requests to reload Prometheus to").Required().String()
+	reloadURL      = app.Flag("reload-url", "The url to issue requests to reload Prometheus to").Required().String()
 )
 
 func main() {
@@ -55,23 +55,27 @@ func main() {
 		os.Exit(2)
 	}
 	//First usage of initialized logger for testing
+	//nolint:errcheck
 	level.Debug(logger).Log("msg", "Logging initiated...")
 	//Initialize new k8s client from common k8s package
 	k8sClient, err := kubernetes.NewClientSet(runOutsideCluster)
 	if err != nil {
+		//nolint:errcheck
 		level.Error(logger).Log("msg", err.Error())
 		app.Usage(os.Args[1:])
 		os.Exit(2)
 	}
 
-	rUrl, err := url.Parse(*reloadUrl)
+	rURL, err := url.Parse(*reloadURL)
 	if err != nil {
-		level.Error(logger).Log("msg", "Prometheus reload URL could not be parsed: "+*reloadUrl)
+		//nolint:errcheck
+		level.Error(logger).Log("msg", "Prometheus reload URL could not be parsed: "+*reloadURL)
 		os.Exit(2)
 	}
 
-	p := prometheus.New(rUrl, *configPath, *configTemplate, *id, *key, logger)
+	p := prometheus.New(rURL, *configPath, *configTemplate, *id, *key, logger)
 
+	//nolint:errcheck
 	level.Info(logger).Log("msg", "Starting Prometheus Controller...")
 	sigs := make(chan os.Signal, 1) // Create channel to receive OS signals
 	stop := make(chan struct{})     // Create channel to receive stop signal
@@ -89,6 +93,7 @@ func main() {
 
 	<-sigs // Wait for signals (this hangs until a signal arrives)
 
+	//nolint:errcheck
 	level.Info(logger).Log("msg", "Shutting down...")
 
 	close(stop) // Tell goroutines to stop themselves
