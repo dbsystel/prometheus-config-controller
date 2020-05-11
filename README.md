@@ -30,10 +30,10 @@ Prometheus will start with a provided minimal dummy config, which is definetly v
 
 (**Id**)
 
-`prometheus.net/id` with values: `"0"` ... `"n"`
+`prometheus.net/id` string
 
 In case of multiple Prometheus *setups* in same Kubernetes Cluster all the ConfigMaps have to be mapped to the right Prometheus setup.
-So each *ConfigMap* can be additionaly annotated with the `prometheus.net/id` (if not, the default `id` will be `"0"`)
+So each *ConfigMap* should be annotated with the `prometheus.net/id`
 
 You can run e.g. two Prometheus instances (replicas = 2) with id=0 and for an another setup in same cluster with two Prometheus instances with id=1, and so on.
 
@@ -53,6 +53,13 @@ Mentioned `"false"` values can be also specified with: `"0", "f", "F", "false", 
 --configTemplate # Sets the location of template of the Prometheus config
 --id # Sets the ID, so the Controller knows which ConfigMaps should be watched
 --key # Sets the key, so the Controller can recognize the template of config in ConfigMap
+--listen-address # The address to listen on for HTTP requests
+```
+
+## Metrics
+This Controller ignores all configs with syntax error. There is a metric to monitor the count of wrong configs:
+```
+prometheus_controller_config_error_total
 ```
 
 ## Development
