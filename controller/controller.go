@@ -245,6 +245,7 @@ func (c *Controller) Update(oldobj, newobj interface{}) {
 	} else if isOldPrometheusJob && !isNewPrometheusJob {
 		if oldID == c.p.ID {
 			c.deleteJobs(oldConfigmapObj)
+			err = c.buildConfig()
 		}
 	} else if isOldPrometheusRule && !isNewPrometheusRule {
 		if oldID == c.p.ID {
