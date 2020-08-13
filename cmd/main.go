@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/dbsystel/kube-controller-dbsystel-go-common/controller/configmap"
+	"github.com/Kirchen99/kube-controller-dbsystel-go-common/controller/configmap"
 	"github.com/dbsystel/kube-controller-dbsystel-go-common/kubernetes"
 	k8sflag "github.com/dbsystel/kube-controller-dbsystel-go-common/kubernetes/flag"
 	opslog "github.com/dbsystel/kube-controller-dbsystel-go-common/log"
@@ -34,6 +34,7 @@ var (
 	key            = app.Flag("key", "The unique key for prometheus config").String()
 	reloadURL      = app.Flag("reload-url", "The url to issue requests to reload Prometheus to").Required().String()
 	addr           = app.Flag("listen-address", "The address to listen on for HTTP requests.").Default(":8080").String()
+	namespace      = app.Flag("namespace", "The namespace to watching.").Default("").String()
 )
 
 var (
@@ -103,7 +104,7 @@ func main() {
 	//Initialize new k8s configmap-controller from common k8s package
 	configMapController := &configmap.ConfigMapController{}
 	configMapController.Controller = controller.New(*p, logger)
-	configMapController.Initialize(k8sClient)
+	configMapController.Initialize(k8sClient, *namespace)
 
 	go startMetricsServer(logger)
 

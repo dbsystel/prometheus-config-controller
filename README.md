@@ -54,6 +54,7 @@ Mentioned `"false"` values can be also specified with: `"0", "f", "F", "false", 
 --id # Sets the ID, so the Controller knows which ConfigMaps should be watched
 --key # Sets the key, so the Controller can recognize the template of config in ConfigMap
 --listen-address # The address to listen on for HTTP requests
+--namespace # Only watch specified namespace
 ```
 
 ## Metrics
