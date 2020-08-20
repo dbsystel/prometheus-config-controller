@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/Kirchen99/kube-controller-dbsystel-go-common/controller/configmap"
+	"github.com/dbsystel/kube-controller-dbsystel-go-common/controller/configmap"
 	"github.com/dbsystel/kube-controller-dbsystel-go-common/kubernetes"
 	k8sflag "github.com/dbsystel/kube-controller-dbsystel-go-common/kubernetes/flag"
 	opslog "github.com/dbsystel/kube-controller-dbsystel-go-common/log"
