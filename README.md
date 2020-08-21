@@ -1,10 +1,13 @@
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Build Status](https://travis-ci.org/dbsystel/prometheus-config-controller.svg)](https://travis-ci.org/dbsystel/prometheus-config-controller)
+
 # Config Controller for Prometheus
 
 This Controller is based on the [Grafana Operator](https://github.com/tsloughter/grafana-operator). The Config Controller should be run within [Kubernetes](https://github.com/kubernetes/kubernetes) as a sidecar with [Prometheus](https://github.com/prometheus/prometheus).
 
 It watches for new/updated/deleted *ConfigMaps* and if they define the specified annotations as `true` it will save each resource from ConfigMap to local storage and reload Prometheus. This requires Prometheus 2.x.
 
-## Annotations
+## ConfigMap Annotations
 
 Currently it supports three resources:
 
@@ -27,10 +30,10 @@ Prometheus will start with a provided minimal dummy config, which is definetly v
 
 (**Id**)
 
-`prometheus.net/id` with values: `"0"` ... `"n"`
+`prometheus.net/id` string
 
 In case of multiple Prometheus *setups* in same Kubernetes Cluster all the ConfigMaps have to be mapped to the right Prometheus setup.
-So each *ConfigMap* can be additionaly annotated with the `prometheus.net/id` (if not, the default `id` will be `"0"`)
+So each *ConfigMap* should be annotated with the `prometheus.net/id`
 
 You can run e.g. two Prometheus instances (replicas = 2) with id=0 and for an another setup in same cluster with two Prometheus instances with id=1, and so on.
 
@@ -50,16 +53,24 @@ Mentioned `"false"` values can be also specified with: `"0", "f", "F", "false", 
 --configTemplate # Sets the location of template of the Prometheus config
 --id # Sets the ID, so the Controller knows which ConfigMaps should be watched
 --key # Sets the key, so the Controller can recognize the template of config in ConfigMap
+--listen-address # The address to listen on for HTTP requests
+--namespace # Only watch specified namespace
+```
+
+## Metrics
+This Controller ignores all configs with syntax errors. There is a metric to monitor the count of wrong configs:
+```
+prometheus_controller_config_errors_total
 ```
 
 ## Development
 ### Build
+```sh
+make build
+# to run the linter, tests and build the binary, run
+make ci
 ```
-go build -v -i -o ./bin/prometheus-config-controller ./cmd # on Linux
-GOOS=linux CGO_ENABLED=0 go build -v -i -o ./bin/prometheus-config-controller ./cmd # on macOS/Windows
-```
-To build a docker image out of it, look at provided [Dockerfile](Dockerfile) example.
-
+To build a docker image out of it, look at provided [Dockerfile](Dockerfile) example which expects the `prometheus-config-controller` binary in the same directory.
 
 ## Deployment
 Our preferred way to install prometheus/prometheus-config-controller is [Helm](https://helm.sh/). See example installation at our [Helm directory](helm) within this repo.

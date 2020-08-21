@@ -10,37 +10,43 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	pclient "github.com/prometheus/client_golang/prometheus"
 )
 
+// APIClient to reload Prometheus
 type APIClient struct {
-	Url    *url.URL
-	ConfigPath string
+	URL            *url.URL
+	ConfigPath     string
 	ConfigTemplate string
-	HTTPClient *http.Client
-	Id         int
-	Key        string
-	logger     log.Logger
+	HTTPClient     *http.Client
+	ID             string
+	Key            string
+	logger         log.Logger
+	ErrorCount     pclient.Counter
 }
 
-type PrometheusConfig struct {
+// Config for Prometheus
+type Config struct {
 	Jobs string
 }
 
-// reload prometheus
-func (c *APIClient) Reload() (error,int) {
-	return c.doPost(c.Url.String())
+// Reload prometheus
+func (c *APIClient) Reload() (int, error) {
+	return c.doPost(c.URL.String())
 }
 
 // do post request
-func (c *APIClient) doPost(url string) (error,int) {
+func (c *APIClient) doPost(url string) (int, error) {
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
-		return err, 0
+		return 0, err
 	}
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		for strings.Contains(err.Error(), "connection refused") {
+			//nolint:errcheck
 			level.Error(c.logger).Log("err", err.Error())
+			//nolint:errcheck
 			level.Info(c.logger).Log("msg", "Perhaps Prometheus is not ready. Waiting for 8 seconds and retry again...")
 			time.Sleep(8 * time.Second)
 			resp, err = c.HTTPClient.Do(req)
@@ -50,27 +56,29 @@ func (c *APIClient) doPost(url string) (error,int) {
 		}
 	}
 	if err != nil {
-		return err, 0
+		return 0, err
 	}
 	defer resp.Body.Close()
 
 	response, _ := ioutil.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code returned from Prometheus (got: %d, expected: 200, msg:%s)", resp.StatusCode, response), resp.StatusCode
+		//nolint:lll
+		return resp.StatusCode, fmt.Errorf("unexpected status code returned from Prometheus (got: %d, expected: 200, msg:%s)", resp.StatusCode, response)
 	}
-	return nil, 0
+	return 0, nil
 }
 
-// return a new APIClient
-func New(baseUrl *url.URL, configPath string, configTemplate string, id int, key string, logger log.Logger) *APIClient {
+// New creates a new APIClient
+func New(baseURL *url.URL, configPath string, configTemplate string, id string, key string, errorCount pclient.Counter, logger log.Logger) *APIClient {
 	return &APIClient{
-		Url:    baseUrl,
-		ConfigPath: configPath,
-		ConfigTemplate : configTemplate,
-		HTTPClient: http.DefaultClient,
-		Id:         id,
-		Key:        key,
-		logger:     logger,
+		URL:            baseURL,
+		ConfigPath:     configPath,
+		ConfigTemplate: configTemplate,
+		HTTPClient:     http.DefaultClient,
+		ID:             id,
+		Key:            key,
+		ErrorCount:     errorCount,
+		logger:         logger,
 	}
 }

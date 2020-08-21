@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
@@ -18,7 +19,10 @@ import (
 	logflag "github.com/dbsystel/kube-controller-dbsystel-go-common/log/flag"
 	"github.com/dbsystel/prometheus-config-controller/controller"
 	"github.com/dbsystel/prometheus-config-controller/prometheus"
+	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	pclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -26,9 +30,20 @@ var (
 	//Here you can define more flags for your application
 	configPath     = app.Flag("config-path", "The location to save rule and config files to").Required().String()
 	configTemplate = app.Flag("config-template", "The template of prometheus.yml").Required().String()
-	id             = app.Flag("id", "The id of Prometheus").Default("0").Int()
+	id             = app.Flag("id", "The id of Prometheus").Default("0").String()
 	key            = app.Flag("key", "The unique key for prometheus config").String()
-	reloadUrl      = app.Flag("reload-url", "The url to issue requests to reload Prometheus to").Required().String()
+	reloadURL      = app.Flag("reload-url", "The url to issue requests to reload Prometheus to").Required().String()
+	addr           = app.Flag("listen-address", "The address to listen on for HTTP requests.").Default(":8080").String()
+	namespace      = app.Flag("namespace", "The namespace to watching.").Default("").String()
+)
+
+var (
+	configErrors = pclient.NewCounter(
+		pclient.CounterOpts{
+			Name: "prometheus_controller_config_errors_total",
+			Help: "Prometheus Controller Error Config Total",
+		},
+	)
 )
 
 func main() {
@@ -55,23 +70,29 @@ func main() {
 		os.Exit(2)
 	}
 	//First usage of initialized logger for testing
+	//nolint:errcheck
 	level.Debug(logger).Log("msg", "Logging initiated...")
 	//Initialize new k8s client from common k8s package
 	k8sClient, err := kubernetes.NewClientSet(runOutsideCluster)
 	if err != nil {
+		//nolint:errcheck
 		level.Error(logger).Log("msg", err.Error())
 		app.Usage(os.Args[1:])
 		os.Exit(2)
 	}
 
-	rUrl, err := url.Parse(*reloadUrl)
+	rURL, err := url.Parse(*reloadURL)
 	if err != nil {
-		level.Error(logger).Log("msg", "Prometheus reload URL could not be parsed: "+*reloadUrl)
+		//nolint:errcheck
+		level.Error(logger).Log("msg", "Prometheus reload URL could not be parsed: "+*reloadURL)
 		os.Exit(2)
 	}
 
-	p := prometheus.New(rUrl, *configPath, *configTemplate, *id, *key, logger)
+	pclient.MustRegister(configErrors)
 
+	p := prometheus.New(rURL, *configPath, *configTemplate, *id, *key, configErrors, logger)
+
+	//nolint:errcheck
 	level.Info(logger).Log("msg", "Starting Prometheus Controller...")
 	sigs := make(chan os.Signal, 1) // Create channel to receive OS signals
 	stop := make(chan struct{})     // Create channel to receive stop signal
@@ -83,14 +104,26 @@ func main() {
 	//Initialize new k8s configmap-controller from common k8s package
 	configMapController := &configmap.ConfigMapController{}
 	configMapController.Controller = controller.New(*p, logger)
-	configMapController.Initialize(k8sClient)
+	configMapController.Initialize(k8sClient, *namespace)
+
+	go startMetricsServer(logger)
+
 	//Run initiated configmap-controller as go routine
 	go configMapController.Run(stop, wg)
 
 	<-sigs // Wait for signals (this hangs until a signal arrives)
 
+	//nolint:errcheck
 	level.Info(logger).Log("msg", "Shutting down...")
 
 	close(stop) // Tell goroutines to stop themselves
 	wg.Wait()   // Wait for all to be stopped
+}
+
+func startMetricsServer(logger log.Logger) {
+	http.Handle("/metrics", promhttp.Handler())
+	err := http.ListenAndServe(*addr, nil)
+	if err != nil {
+		level.Error(logger).Log("err", err.Error)
+	}
 }
