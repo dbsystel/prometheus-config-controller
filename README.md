@@ -1,3 +1,5 @@
+:warning: The project has been archived and is no longer maintained!
+
 # Config Controller for Prometheus
 
 This Controller is based on the [Grafana Operator](https://github.com/tsloughter/grafana-operator). The Config Controller should be run within [Kubernetes](https://github.com/kubernetes/kubernetes) as a sidecar with [Prometheus](https://github.com/prometheus/prometheus).
